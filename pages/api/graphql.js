@@ -1,5 +1,12 @@
 import Cors from 'micro-cors'
 import { gql, ApolloServer } from 'apollo-server-micro'
+import { Client, Map, Paginate, Documents, Collection, Lambda, Get } from 'faunadb'
+
+
+const client = new Client({
+    secret: process.env.FAUNA_SECRET,
+    domain: 'db.fauna.com',
+})
 
 export const config = {
     api: {
@@ -20,7 +27,16 @@ const typeDefs = gql`
 
 const resolvers = {
     Query: {
-      books: () => books,
+      books: async () => {
+          const response = await client.query(
+              Map(
+                  Paginate(Documents(Collection('Book'))),
+                  Lambda((x) => Get(x))
+              )
+          )
+          const books = response.data.map(item => item.data)
+          return [...books]
+      },
     },
 };
 
